@@ -1,0 +1,129 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* Provide sufficient contrast against white background */
+a {
+  color: #0366d6;
+}
+
+code {
+  color: #e01a76;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+
+/* Custom styles for GCP File Management */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bg-gradient-success {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+}
+
+.bg-gradient-info {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+}
+
+.upload-area {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-area:hover {
+  background-color: #f8f9fa !important;
+  border-color: #007bff !important;
+}
+
+.bg-success-light {
+  background-color: #d4edda !important;
+  border-color: #28a745 !important;
+}
+
+.selected-file-info {
+  background-color: rgba(40, 167, 69, 0.1);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+.card {
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.card-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.btn-group .btn {
+  margin: 0 2px;
+}
+
+.display-4 {
+  font-weight: 300;
+}
+
+.text-primary {
+  color: #667eea !important;
+}
+
+/* Loading animation */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Badge styling */
+.badge {
+  font-size: 0.75em;
+  padding: 0.35em 0.65em;
+}
+
+/* Icon styling */
+.fas {
+  font-weight: 900;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .display-4 {
+    font-size: 2rem;
+  }
+
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .btn-group .btn {
+    margin: 2px 0;
+  }
+}

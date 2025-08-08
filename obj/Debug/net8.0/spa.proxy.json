@@ -1,0 +1,8 @@
+{
+"SpaProxyServer": {
+"ServerUrl": "https://localhost:44449",
+"LaunchCommand": "npm start",
+"WorkingDirectory": "/Users/delllin/Projects/GcpFileMove/ClientApp/",
+"MaxTimeoutInSeconds": "120"
+}
+}

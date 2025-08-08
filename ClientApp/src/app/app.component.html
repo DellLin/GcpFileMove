@@ -1,0 +1,248 @@
+<body class="bg-light">
+  <div class="container py-4">
+    <!-- Header Section -->
+    <div class="text-center mb-5">
+      <h1 class="display-4 text-primary mb-2">
+        <i class="fas fa-cloud-upload-alt me-3"></i>
+        GCP Storage File Management
+      </h1>
+      <p class="lead text-muted">Securely manage your files in Google Cloud Storage</p>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="card shadow-sm mb-4 border-0">
+      <div class="card-header bg-gradient-primary text-white">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-upload me-2"></i>
+          Upload New File
+        </h5>
+      </div>
+      <div class="card-body p-4">
+        <div class="upload-area border-2 border-dashed border-primary rounded p-4 text-center mb-3"
+          [class.bg-light]="!selectedFile" [class.bg-success-light]="selectedFile">
+          <div class="form-group mb-3">
+            <i class="fas fa-file-upload fa-2x text-primary mb-3"></i>
+            <input type="file" (change)="onFileSelected($event)" class="form-control-file d-none" id="fileInput">
+            <label for="fileInput" class="btn btn-outline-primary btn-lg">
+              <i class="fas fa-folder-open me-2"></i>
+              Choose File
+            </label>
+          </div>
+          <div *ngIf="selectedFile" class="selected-file-info">
+            <p class="mb-2"><strong>Selected File:</strong> {{ selectedFile.name }}</p>
+            <p class="text-muted small">Size: {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
+          </div>
+        </div>
+        <div class="text-center">
+          <button (click)="onUpload()" class="btn btn-primary btn-lg px-4" [disabled]="!selectedFile || isUploading">
+            <span *ngIf="!isUploading">
+              <i class="fas fa-cloud-upload-alt me-2"></i>
+              Upload to GCP Storage
+            </span>
+            <span *ngIf="isUploading">
+              <div class="loading-spinner me-2"></div>
+              Uploading...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- All Files Section -->
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white border-bottom">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-database me-2 text-info"></i>
+            All Files with Original Names
+          </h5>
+          <button (click)="toggleSortOrder()" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-sort me-1"></i>
+            Sort by Date: {{ sortDescending ? 'Newest First' : 'Oldest First' }}
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div *ngIf="isLoading" class="text-center py-5">
+          <div class="spinner-border text-primary mb-3" role="status"></div>
+          <p class="text-muted">Loading files...</p>
+        </div>
+        <div class="table-responsive" *ngIf="!isLoading">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="border-0">
+                  <i class="fas fa-file me-1"></i>
+                  Original File Name
+                </th>
+                <th class="border-0">
+                  <i class="fas fa-fingerprint me-1"></i>
+                  UUID File Name
+                </th>
+                <th class="border-0">
+                  <i class="fas fa-hdd me-1"></i>
+                  Size
+                </th>
+                <th class="border-0">
+                  <i class="fas fa-calendar me-1"></i>
+                  Upload Date
+                  <span class="text-muted small">
+                    {{ sortDescending ? '(↓ Newest First)' : '(↑ Oldest First)' }}
+                  </span>
+                </th>
+                <th class="border-0 text-center">
+                  <i class="fas fa-cogs me-1"></i>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let file of filesWithMetadata" class="align-middle">
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="fas fa-file-alt text-primary me-2"></i>
+                    <span class="fw-medium">{{ file.originalFileName }}</span>
+                  </div>
+                </td>
+                <td>
+                  <code class="text-muted small">{{ file.uuidFileName }}</code>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark">{{ file.size | number }} bytes</span>
+                </td>
+                <td>
+                  <small class="text-muted">{{ file.uploadDate | date:'short' }}</small>
+                </td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button (click)="downloadFile(file.uuidFileName)" class="btn btn-success btn-sm" title="Download">
+                      <i class="fas fa-download"></i>
+                    </button>
+                    <button (click)="deleteFile(file.uuidFileName)" class="btn btn-danger btn-sm" title="Delete">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div *ngIf="filesWithMetadata.length === 0 && !isLoading" class="text-center py-5">
+          <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+          <p class="text-muted h5">No files found in storage</p>
+          <p class="text-muted">Upload your first file to get started!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Uploads Section -->
+    <div class="card shadow-sm mt-4 border-0">
+      <div class="card-header bg-gradient-success text-white">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-clock me-2"></i>
+          Recently Uploaded Files (This Session)
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="border-0">
+                  <i class="fas fa-file me-1"></i>
+                  Original File Name
+                </th>
+                <th class="border-0">
+                  <i class="fas fa-fingerprint me-1"></i>
+                  UUID File Name
+                </th>
+                <th class="border-0 text-center">
+                  <i class="fas fa-cogs me-1"></i>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let file of uploadedFiles" class="align-middle">
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="fas fa-file-alt text-success me-2"></i>
+                    <span class="fw-medium">{{ file.originalFileName }}</span>
+                    <span class="badge bg-success ms-2">New</span>
+                  </div>
+                </td>
+                <td>
+                  <code class="text-muted small">{{ file.uuidFileName }}</code>
+                </td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button (click)="downloadFile(file.uuidFileName)" class="btn btn-success btn-sm" title="Download">
+                      <i class="fas fa-download"></i>
+                    </button>
+                    <button (click)="deleteFile(file.uuidFileName)" class="btn btn-danger btn-sm" title="Delete">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div *ngIf="uploadedFiles.length === 0" class="text-center py-4">
+          <i class="fas fa-clock fa-2x text-muted mb-3"></i>
+          <p class="text-muted">No files uploaded in this session</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Raw API Response Section -->
+    <div class="card shadow-sm mt-4 border-0">
+      <div class="card-header bg-gradient-info text-white">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-code me-2"></i>
+          Raw Storage API Response
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="border-0">
+                  <i class="fas fa-fingerprint me-1"></i>
+                  File Name (UUID)
+                </th>
+                <th class="border-0 text-center">
+                  <i class="fas fa-cogs me-1"></i>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let file of files" class="align-middle">
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="fas fa-file text-info me-2"></i>
+                    <code class="text-muted">{{ file.name }}</code>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button (click)="downloadFile(file.name)" class="btn btn-success btn-sm" title="Download">
+                      <i class="fas fa-download"></i>
+                    </button>
+                    <button (click)="deleteFile(file.name)" class="btn btn-danger btn-sm" title="Delete">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
