@@ -23,7 +23,11 @@ export interface FileMetadata {
 })
 export class StorageService {
 
-  private apiUrl = `${environment.apiUrl}/storage`;
+  private get apiUrl() {
+    // 若 environment.apiUrl 為空，則用 window.location.origin
+    const baseUrl = environment.apiUrl || window.location.origin;
+    return `${baseUrl}/storage`;
+  }
 
   constructor(private http: HttpClient) { }
 
