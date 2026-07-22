@@ -19,5 +19,8 @@ namespace GcpFileMove.Services
 
         [JsonPropertyName("timeCreated")]
         public string TimeCreated { get; set; } = string.Empty;
+
+        [JsonPropertyName("metadata")]
+        public Dictionary<string, string>? Metadata { get; set; }
     }
 }

@@ -19,25 +19,43 @@
       </div>
       <div class="card-body p-4">
         <div class="upload-area border-2 border-dashed border-primary rounded p-4 text-center mb-3"
-          [class.bg-light]="!selectedFile" [class.bg-success-light]="selectedFile">
+          [class.bg-light]="selectedFiles.length === 0" [class.bg-success-light]="selectedFiles.length > 0">
           <div class="form-group mb-3">
             <i class="fas fa-file-upload fa-2x text-primary mb-3"></i>
-            <input type="file" (change)="onFileSelected($event)" class="form-control-file d-none" id="fileInput">
+            <input type="file" multiple (change)="onFileSelected($event)" class="form-control-file d-none" id="fileInput">
             <label for="fileInput" class="btn btn-outline-primary btn-lg">
               <i class="fas fa-folder-open me-2"></i>
-              Choose File
+              Choose Files
             </label>
           </div>
-          <div *ngIf="selectedFile" class="selected-file-info">
-            <p class="mb-2"><strong>Selected File:</strong> {{ selectedFile.name }}</p>
-            <p class="text-muted small">Size: {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
+          <div *ngIf="selectedFiles.length > 0" class="selected-file-info text-start">
+            <p class="mb-2"><strong>{{ selectedFiles.length }} file(s) selected</strong></p>
+            <ul class="list-group mb-2">
+              <li *ngFor="let item of selectedFiles; let i = index"
+                class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                  {{ item.file.name }}
+                  <span class="text-muted small">({{ (item.file.size / 1024 / 1024).toFixed(2) }} MB)</span>
+                </span>
+                <span class="d-flex align-items-center">
+                  <span *ngIf="item.status === 'pending'" class="badge bg-secondary me-2">Pending</span>
+                  <span *ngIf="item.status === 'uploading'" class="badge bg-primary me-2">Uploading...</span>
+                  <span *ngIf="item.status === 'done'" class="badge bg-success me-2">Done</span>
+                  <span *ngIf="item.status === 'error'" class="badge bg-danger me-2" [title]="item.errorMessage">Failed</span>
+                  <button *ngIf="item.status === 'pending'" (click)="removeSelectedFile(i)"
+                    class="btn btn-sm btn-outline-danger" title="Remove">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </span>
+              </li>
+            </ul>
           </div>
         </div>
         <div class="text-center">
-          <button (click)="onUpload()" class="btn btn-primary btn-lg px-4" [disabled]="!selectedFile || isUploading">
+          <button (click)="onUpload()" class="btn btn-primary btn-lg px-4" [disabled]="selectedFiles.length === 0 || isUploading">
             <span *ngIf="!isUploading">
               <i class="fas fa-cloud-upload-alt me-2"></i>
-              Upload to GCP Storage
+              Upload {{ selectedFiles.length }} File(s) to GCP Storage
             </span>
             <span *ngIf="isUploading">
               <div class="loading-spinner me-2"></div>

@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  gcpfilemove:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      # 請在 .env 檔案中設定這些變數（參考 .env.example）
+      - Gcp__BucketName=${GCP_BUCKET_NAME}
+      - Gcp__ServiceAccountKey=/app/gcp/service-account-key.json
+      - Encryption__Key=${ENCRYPTION_KEY}
+      - Encryption__IV=${ENCRYPTION_IV}
+    volumes:
+      # 掛載 GCP 服務帳戶金鑰文件
+      - ${GCP_SERVICE_ACCOUNT_KEY_PATH}:/app/gcp/service-account-key.json:ro
+    restart: unless-stopped

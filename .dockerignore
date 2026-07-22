@@ -1,0 +1,85 @@
+# .NET 相關
+bin/
+obj/
+out/
+*.user
+*.suo
+*.cache
+*.docstates
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio 相關
+.vs/
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+
+# Node.js 相關
+ClientApp/node_modules/
+ClientApp/dist/
+ClientApp/dist-server/
+ClientApp/.angular/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 開發工具
+.vscode/
+.idea/
+
+# OS 相關
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# 環境變數和機密
+.env
+*.env
+appsettings.*.json
+!appsettings.json
+
+# 測試和覆蓋率報告
+TestResults/
+[Cc]overage/
+*.coverage
+*.coveragexml
+
+# 套件管理
+packages/
+*.nupkg
+*.snupkg
+
+# 暫存檔案
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# 日誌檔案
+*.log
+logs/
+
+# 其他
+*.orig
+*.rej

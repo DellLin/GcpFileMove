@@ -67,3 +67,12 @@ Temporary Items
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
 
+# 環境變數與機密設定（包含真實金鑰，切勿提交）
+.env
+.env.local
+appsettings.*.json
+!appsettings.json
+
+# GCP 服務帳戶金鑰
+*service-account*.json
+

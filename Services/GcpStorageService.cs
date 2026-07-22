@@ -62,8 +62,18 @@ namespace GcpFileMove.Services
                 {
                     try
                     {
-                        // 嘗試下載並解析每個檔案的元數據
-                        var originalFileName = await GetOriginalFileNameAsync(item.Name);
+                        string originalFileName;
+
+                        if (item.Metadata != null && item.Metadata.TryGetValue("originalFileName", out var encryptedFileName))
+                        {
+                            // 新格式：檔名已獨立加密存放在物件中繼資料，直接解密即可，不需下載檔案內容
+                            originalFileName = _encryptionService.DecryptString(encryptedFileName);
+                        }
+                        else
+                        {
+                            // 舊格式相容：檔名內嵌在加密內容中，需下載整個物件才能取得
+                            originalFileName = await GetOriginalFileNameAsync(item.Name);
+                        }
 
                         fileInfoList.Add(new FileInfo
                         {
@@ -137,23 +147,33 @@ namespace GcpFileMove.Services
             var uuidFileName = Guid.NewGuid().ToString();
             var url = $"https://storage.googleapis.com/upload/storage/v1/b/{bucketName}/o?uploadType=media&name={uuidFileName}";
 
-            // 創建包含原始檔案名稱的檔案流
-            var fileStreamWithMetadata = await CreateStreamWithMetadata(fileName, stream);
-
-            // 加密檔案流
-            var encryptedStream = await _encryptionService.EncryptStreamAsync(fileStreamWithMetadata);
+            // 只加密實際檔案內容，檔名不再內嵌於內容中
+            var encryptedStream = await _encryptionService.EncryptStreamAsync(stream);
 
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             var content = new StreamContent(encryptedStream);
             var response = await _httpClient.PostAsync(url, content);
             response.EnsureSuccessStatusCode();
-
-            // 上傳成功後，將檔案名稱加入快取
-            _fileNameCache[uuidFileName] = fileName;
-
-            // 清理流
             encryptedStream.Dispose();
-            fileStreamWithMetadata.Dispose();
+
+            // 將原始檔名獨立加密後寫入物件的自訂中繼資料，
+            // 之後列出清單時只需讀取中繼資料即可解密檔名，不必下載整個檔案內容
+            var encryptedFileName = _encryptionService.EncryptString(fileName);
+            var metadataUrl = $"https://storage.googleapis.com/storage/v1/b/{bucketName}/o/{Uri.EscapeDataString(uuidFileName)}";
+            var metadataPayload = JsonSerializer.Serialize(new
+            {
+                metadata = new Dictionary<string, string> { ["originalFileName"] = encryptedFileName }
+            });
+            var metadataRequest = new HttpRequestMessage(HttpMethod.Patch, metadataUrl)
+            {
+                Content = new StringContent(metadataPayload, Encoding.UTF8, "application/json")
+            };
+            metadataRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            var metadataResponse = await _httpClient.SendAsync(metadataRequest);
+            metadataResponse.EnsureSuccessStatusCode();
+
+            // 上傳成功後，將檔案名稱加入快取（供舊格式回退路徑使用）
+            _fileNameCache[uuidFileName] = fileName;
 
             return uuidFileName; // 返回UUID檔案名稱
         }
@@ -161,44 +181,34 @@ namespace GcpFileMove.Services
         {
             var accessToken = await _authService.GetAccessTokenAsync();
             var bucketName = _configuration["Gcp:BucketName"];
-            var url = $"https://storage.googleapis.com/storage/v1/b/{bucketName}/o/{uuidFileName}?alt=media";
+            var objectUrl = $"https://storage.googleapis.com/storage/v1/b/{bucketName}/o/{Uri.EscapeDataString(uuidFileName)}";
 
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            var response = await _httpClient.GetAsync(url);
+
+            // 先取得物件中繼資料（不含內容），判斷是新格式還是舊格式
+            var metadataResponse = await _httpClient.GetAsync(objectUrl);
+            metadataResponse.EnsureSuccessStatusCode();
+            var metadataJson = await metadataResponse.Content.ReadAsStringAsync();
+            var item = JsonSerializer.Deserialize<GcpStorageItem>(metadataJson);
+
+            var response = await _httpClient.GetAsync($"{objectUrl}?alt=media");
             response.EnsureSuccessStatusCode();
 
             var encryptedStream = await response.Content.ReadAsStreamAsync();
-
-            // 解密檔案流
             var decryptedStream = await _encryptionService.DecryptStreamAsync(encryptedStream);
 
-            // 從解密的流中提取原始檔案名稱和檔案內容
-            var (fileStream, originalFileName) = await ExtractFileStreamAndMetadata(decryptedStream);
+            if (item?.Metadata != null && item.Metadata.TryGetValue("originalFileName", out var encryptedFileName))
+            {
+                // 新格式：檔名獨立加密存於中繼資料，解密後的內容即為原始檔案
+                var originalFileName = _encryptionService.DecryptString(encryptedFileName);
+                return (decryptedStream, originalFileName);
+            }
 
-            return (fileStream, originalFileName);
+            // 舊格式相容：檔名內嵌於加密內容前段
+            return await ExtractFileStreamAndMetadata(decryptedStream);
         }
 
-        private async Task<Stream> CreateStreamWithMetadata(string fileName, Stream fileStream)
-        {
-            var memoryStream = new MemoryStream();
-
-            // 將檔案名稱編碼為UTF-8
-            var fileNameBytes = Encoding.UTF8.GetBytes(fileName);
-            var fileNameLength = BitConverter.GetBytes(fileNameBytes.Length);
-
-            // 寫入檔案名稱長度（4字節）
-            await memoryStream.WriteAsync(fileNameLength, 0, 4);
-
-            // 寫入檔案名稱
-            await memoryStream.WriteAsync(fileNameBytes, 0, fileNameBytes.Length);
-
-            // 寫入實際檔案內容
-            await fileStream.CopyToAsync(memoryStream);
-
-            memoryStream.Position = 0;
-            return memoryStream;
-        }
-
+        // 舊格式相容：解析舊版「檔名內嵌於加密內容前段」的格式
         private async Task<(Stream fileStream, string originalFileName)> ExtractFileStreamAndMetadata(Stream streamWithMetadata)
         {
             // 讀取檔案名稱長度（4字節）
