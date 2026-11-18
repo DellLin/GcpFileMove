@@ -32,6 +32,8 @@ namespace GcpFileMove.Controllers
         }
 
         [HttpPost]
+        [RequestSizeLimit(500L * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 500L * 1024 * 1024)]
         public async Task<IActionResult> UploadFile(IFormFile file)
         {
             if (file == null || file.Length == 0)
